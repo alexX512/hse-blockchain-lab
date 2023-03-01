@@ -19,14 +19,12 @@ class Client:
 
         self.web3.default_account = self.web3.eth.account.from_key(PRIVATE_KEY)
         self.from_address = self.web3.default_account.address
-        self.nonce = self.web3.eth.getTransactionCount(self.from_address)
         with open('../artifacts/contracts/HSEToken.sol/HSEToken.json') as f:
             info_json = json.load(f)
         abi = info_json["abi"]
 
         self.contract = self.web3.eth.contract(address=CONTRACT_ADDRESS, abi=abi)
 
-        self.event_filter = self.web3.eth.filter({"address": CONTRACT_ADDRESS})
 
     def getStudent(self, id):
         return self.contract.functions.getStudent(id).call()
@@ -40,6 +38,7 @@ class Client:
 
 
     def setStudent(self, id, name, mark, isLanguageJS = False):
+        self.nonce = self.web3.eth.getTransactionCount(self.from_address)
         call_function = self.contract.functions.setStudent(id, name, mark, isLanguageJS).buildTransaction({
             'from': self.from_address,
             'nonce': self.nonce
@@ -48,6 +47,7 @@ class Client:
         return self.sendTransaction(call_function)
 
     def deleteStudent(self, id):
+        self.nonce = self.web3.eth.getTransactionCount(self.from_address)
         call_function = self.contract.functions.deleteStudent(id).buildTransaction({
             'from': self.from_address,
             'nonce': self.nonce
@@ -57,7 +57,10 @@ class Client:
     
     def filterByName(self, name):
         event_filter = self.contract.events.SetStudent.createFilter(fromBlock=0, toBlock='latest', argument_filters={'name': name})
-        return event_filter.get_new_entries()
+        events = []
+        for event in event_filter.get_all_entries():
+            events.append(event['args'])
+        return events
 
 def str_to_bool(str):
     return bool(json.loads(str.lower()))
